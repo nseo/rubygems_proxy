@@ -63,6 +63,8 @@ class RubygemsProxy
     case env["PATH_INFO"]
     when "/"
       [200, {"Content-Type" => "text/html"}, [erb(:index)]]
+    when '/api/v1/dependencies'
+      [200, {"Content-Type" => "application/octet-stream"}, [contents]]
     else
       if env["QUERY_STRING"].empty?
         [200, {"Content-Type" => "application/octet-stream"}, [contents]]
@@ -192,16 +194,23 @@ class RubygemsProxy
     env["PATH_INFO"] =~ /specs\..+\.gz$/
   end
 
+  def dependencies?
+    env["PATH_INFO"] =~ /dependencies/
+  end
+
   def filepath
     if specs?
       File.join(root_dir, env["PATH_INFO"])
-    else
-      File.join(cache_dir, env["PATH_INFO"])
+    else dependencies? ?
+           File.join(cache_dir, env["REQUEST_URI"]) :
+           File.join(cache_dir, env["PATH_INFO"])
     end
   end
 
   def url
-    File.join("http://rubygems.org", env["PATH_INFO"])
+    dependencies? ?
+      File.join("http://rubygems.org", env["REQUEST_URI"]) :
+      File.join("http://rubygems.org", env["PATH_INFO"])
   end
 
   def update_specs
