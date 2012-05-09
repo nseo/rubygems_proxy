@@ -56,11 +56,11 @@ class RubygemsProxy
   end
 
   def run
-    logger.info "#{env["REQUEST_METHOD"]} #{env["PATH_INFO"]}"
+    logger.info "#{env["REQUEST_METHOD"]} #{env["REQUEST_URI"]}"
 
     return update_specs if env["REQUEST_METHOD"] == "DELETE"
 
-    case env["PATH_INFO"]
+    case env["REQUEST_URI"]
     when "/"
       [200, {"Content-Type" => "text/html"}, [erb(:index)]]
     when '/api/v1/dependencies'
@@ -83,7 +83,7 @@ class RubygemsProxy
   end
 
   def server_url
-    env["rack.url_scheme"] + "://" + File.join(env["SERVER_NAME"], env["PATH_INFO"])
+    env["rack.url_scheme"] + "://" + File.join(env["SERVER_NAME"], env["REQUEST_URI"])
   end
 
   def rubygems_url(gemname)
@@ -191,7 +191,7 @@ class RubygemsProxy
   end
 
   def specs?
-    env["PATH_INFO"] =~ /specs\..+\.gz$/
+    env["REQUEST_URI"] =~ /specs\..+\.gz$/
   end
 
   def dependencies?
@@ -200,7 +200,7 @@ class RubygemsProxy
 
   def filepath
     if specs?
-      File.join(root_dir, env["PATH_INFO"])
+      File.join(root_dir, env["REQUEST_URI"])
     else dependencies? ?
            File.join(cache_dir, env["REQUEST_URI"]) :
            File.join(cache_dir, env["PATH_INFO"])
