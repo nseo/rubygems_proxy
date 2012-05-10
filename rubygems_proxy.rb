@@ -128,6 +128,20 @@ class RubygemsProxy
     "#{root_dir}/public"
   end
 
+  def proxy_args
+    proxy_args = { }
+    unless ::Proxy.http_proxy_url.nil?
+      logger.info "Using proxy:#{::Proxy.http_proxy_url}"
+      unless ::Proxy.http_proxy_user.nil?
+        logger.info "HTTP Proxy authentication enabled. Using user:#{::Proxy.http_proxy_user}"
+        proxy_args = { :proxy_http_basic_authentication => [::Proxy.http_proxy_url, ::Proxy.http_proxy_user, ::Proxy.http_proxy_pass]}
+      else
+        logger.info "Using proxy without authentication."
+        proxy_args = { :proxy => ::Proxy.http_proxy_url }
+      end
+    end
+  end
+
   def contents
     if File.directory?(filepath)
       erb(404)
@@ -136,17 +150,6 @@ class RubygemsProxy
       open(filepath).read
     else
       logger.info "Read from interwebz: #{url}"
-      proxy_args = { }
-      unless ::Proxy.http_proxy_url.nil?
-        logger.info "Using proxy:#{::Proxy.http_proxy_url}"
-        unless ::Proxy.http_proxy_user.nil?
-          logger.info "HTTP Proxy authentication enabled. Using user:#{::Proxy.http_proxy_user}"
-          proxy_args = { :proxy_http_basic_authentication => [::Proxy.http_proxy_url, ::Proxy.http_proxy_user, ::Proxy.http_proxy_pass]}
-        else
-          logger.info "Using proxy without authentication."
-          proxy_args = { :proxy => ::Proxy.http_proxy_url }
-        end
-      end
       open(url, proxy_args).read.tap {|content| save(content)}
     end
   rescue Exception => error
@@ -160,7 +163,7 @@ class RubygemsProxy
   # add for query
   def query
     logger.info "Query from interwebz: #{api_url}"
-    open(api_url).read
+    open(api_url, proxy_args).read
   rescue Exception => error
     # Just try to load from file if something goes wrong.
     # This includes HTTP timeout, or something.
